@@ -1,0 +1,11 @@
+Using these semantic commit emojis in your commit messages helps maintain clarity and consistency in the project's history. Here's a quick reference table:
+- ✨ feat: New feature
+- 🐛 fix: Bug fix
+- 📚 docs: Documentation changes(*.md)
+- 💎 style: Code style (formatting, etc.)
+- 🔨 refactor: Refactoring (no feature/fix)
+- 🚀 perf: Performance improvement
+- 🚨 test: Tests added or updated
+- 📦 build: Build/dependency changes
+- 👷 ci: CI/CD config changes
+- 🔧 chore: Other (not src or tests)
