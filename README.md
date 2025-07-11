@@ -1,15 +1,13 @@
 # Go AutoMapper
 
 > **⚠️ Notice:** This library is under active development. The API may change until version 1.0.0 is released.
-A high-performance, type-safe mapping library for Go that allows you to register and execute type conversion functions using generics and reflection.
 
-**Summary:**
-Use manual mapping for the absolute fastest scenarios. For most real-world applications, this library offers an ideal balance of speed, safety, and developer productivity. Avoid slower automapper libraries in performance-sensitive code.
+a high-performance, type-safe library for mapping between Go types using generics. It offers flexible mapping strategies, including manual, function-based, and automatic mapping, with a focus on speed and zero allocations for mapped functions. The library is easy to integrate, supports bidirectional mappings, and provides comprehensive documentation and benchmarks to guide usage and performance optimization.
 
 ## 🚀 Features
 
 - **Type-Safe**: Uses Go generics for compile-time type safety
-- **High Performance**: ~25ns per mapping operation with zero allocations
+- **High Performance**: ~50ns per mapping operation with zero allocations
 - **Flexible**: Support for any type conversion (primitives, structs, pointers, interfaces)
 - **Simple API**: Clean and intuitive interface
 - **Comprehensive Testing**: 100% test coverage with extensive benchmarks
@@ -24,7 +22,7 @@ go get github.com/hotrungnhan/go-automapper
 
 There are 3 ways to map data between types in Go:
 
-### 1. Manual Mapping (No Library)
+### 1. Manual (No Library)
 
 ```go
 
@@ -50,7 +48,7 @@ dto := PersonToDTO(person)
 
 ---
 
-### 2. Using This Library with Your Mapping Function
+### 2. Direct Mapping
 
 ```go
 import "github.com/hotrungnhan/go-automapper"
@@ -58,7 +56,7 @@ import "github.com/hotrungnhan/go-automapper"
 func main(){
     m := mapper.NewMapper()
 
-    // Single Direction mapping
+    // Single Direction - Direct mapping
     mapper.Register(m, func(p Person) PersonDTO {
         return PersonDTO{
             FullName: p.Name,
@@ -76,9 +74,9 @@ func main(){
 ```
 
 **Pros:** Type-safe, maintainable, generic, and almost as fast as manual mapping.
-**Cons:** You still write mapping functions, but only once per type pair.
+**Cons:** Significan Slower(50x), You still write mapping functions, but only once per type pair.
 
-### 3. Using Auto Mapping with Direct Auto Map
+### 3. AutoMap
 
 ```go
 
@@ -100,7 +98,7 @@ func main(){
 ```
 
 **Pros:** No mapping function needed, works for most structs with similar fields.  
-**Cons:** Dramatically slower (50x+), allocates memory, not for hot paths.
+**Cons:** Dramatically slower (500x+), allocates memory, not for hot paths.
 
 ## 🔧 Advanced Usage
 
@@ -127,7 +125,7 @@ for _, mapping := range mappings {
 }
 
 // Clean up mappings
-mapper.RemoveMapping[OldSource, OldDest](m)**
+mapper.Remove[OldSource, OldDest](m)**
 ```
 
 ## ⚡ Performance Tips
@@ -148,31 +146,34 @@ mapper.Register(m, func(url string) Data {
 })
 ```
 
-### 🏎️ AutoMapper vs Manual Mapping Benchmarks
+### 🏎️ Benchmark
 
-Below are comparative benchmarks between multiple way to using this library:
+| Benchmark          | Ops/sec       | ns/op     | Baseline (x) |
+| ------------------ | ------------- | --------- | ------------ |
+| **Struct Mapping** |               |           |              |
+| Manual             | 1,000,000,000 | 0.42      | 1x           |
+| DirectMap          | 3,636,888     | 331.9     | 790x         |
+| AutoMap            | 610,694       | 1,999     | 4,760x       |
+| **Slice Mapping**  |               |           |              |
+| ManualSliceMap     | 370,471       | 3,367     | 1x           |
+| DirectMapSlice     | 3,912         | 346,897   | 103x         |
+| AutoMapSlice       | 726           | 1,682,741 | 500x         |
 
-| Test Name                                        |    Iterations | Time (ns/op) | Memory (B/op) | Allocs (op) |
-| ------------------------------------------------ | ------------: | -----------: | ------------: | ----------: |
-| BenchmarkMapperVsManual/Mapper-10                |    47,657,895 |        25.45 |             0 |           0 |
-| BenchmarkMapperVsManual/Manual-10                | 1,000,000,000 |         0.42 |             0 |           0 |
-| BenchmarkManualMappingVsAutoMap/Manual-10        |    37,053,046 |        31.87 |             0 |           0 |
-| BenchmarkManualMappingVsAutoMap/AutoMap-10       |       719,054 |         1624 |           496 |          15 |
-| BenchmarkManualMappingVsAutoMap/DirectAutoMap-10 |       751,530 |         1547 |           496 |          15 |
+> _Lower `ns/op` is better. Manual mapping is fastest, followed by direct mapping, then automap._
 
 ### 📈 Recommendation by Use Case
 
 - **Manual Mapping**:
-  - *Best for*: Ultra-high-performance, hot code paths, or extremely simple mappings.
-  - *Why*: Manual code is always fastest (sub-nanosecond), with zero overhead.
+  - _Best for_: Ultra-high-performance, hot code paths, or extremely simple mappings.
+  - _Why_: Manual code is always fastest (sub-nanosecond), with zero overhead.
 
 - **With Mapped Function**:
-  - *Best for*: Most application code, especially when you want type safety, maintainability, and flexibility.
-  - *Why*: Only ~25ns/op, zero allocations, and much easier to maintain than manual mapping for many types.
+  - _Best for_: Most application code, especially when you want type safety, maintainability, and flexibility.
+  - _Why_: Only ~25ns/op, zero allocations, and much easier to maintain than manual mapping for many types.
 
 - **With Automapper**:
-  - *Best for*: When you need advanced features not present here, and performance is less critical.
-  - *Why*: Typically 50–60x slower (1500+ ns/op) and introduce allocations.
+  - _Best for_: When you need advanced features not present here, and performance is less critical.
+  - _Why_: Typically 50–60x slower (1500+ ns/op) and introduce allocations.
 
 ## 🤝 Contributing
 

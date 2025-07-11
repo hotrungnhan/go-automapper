@@ -57,8 +57,8 @@ func emptyToEmpty(e EmptyStruct) EmptyStruct {
 
 // TestNewMapper tests the constructor
 func TestNewMapper(t *testing.T) {
-	t.Run("creates_new_mapper", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("CreatesNewMapperWithInitializedRegistry", func(t *testing.T) {
+		mapper := New()
 
 		if mapper.registry == nil {
 			t.Error("Expected registry to be initialized")
@@ -69,13 +69,13 @@ func TestNewMapper(t *testing.T) {
 		}
 	})
 
-	t.Run("multiple_instances_are_independent", func(t *testing.T) {
-		mapper1 := NewMapper()
-		mapper2 := NewMapper()
+	t.Run("MultipleInstancesAreIndependent", func(t *testing.T) {
+		mapper1 := New()
+		mapper2 := New()
 
 		Register(mapper1, stringToInt)
 
-		if HasMapping[string, int](mapper1) == HasMapping[string, int](mapper2) {
+		if Has[string, int](mapper1) == Has[string, int](mapper2) {
 			t.Error("Expected mappers to be independent")
 		}
 	})
@@ -83,52 +83,52 @@ func TestNewMapper(t *testing.T) {
 
 // TestRegister tests the registration functionality
 func TestRegister(t *testing.T) {
-	t.Run("register_simple_mapping", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("RegisterSimpleMapping", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, stringToInt)
 
-		if !HasMapping[string, int](mapper) {
+		if !Has[string, int](mapper) {
 			t.Error("Expected mapping to be registered")
 		}
 	})
 
-	t.Run("register_struct_mapping", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("RegisterStructMapping", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, personToDTO)
 
-		if !HasMapping[Person, PersonDTO](mapper) {
+		if !Has[Person, PersonDTO](mapper) {
 			t.Error("Expected struct mapping to be registered")
 		}
 	})
 
-	t.Run("register_empty_struct_mapping", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("RegisterEmptyStructMapping", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, emptyToEmpty)
 
-		if !HasMapping[EmptyStruct, EmptyStruct](mapper) {
+		if !Has[EmptyStruct, EmptyStruct](mapper) {
 			t.Error("Expected empty struct mapping to be registered")
 		}
 	})
 
-	t.Run("register_multiple_mappings", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("RegisterMultipleMappings", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, stringToInt)
 		Register(mapper, intToString)
 		Register(mapper, personToDTO)
 
-		if !HasMapping[string, int](mapper) {
+		if !Has[string, int](mapper) {
 			t.Error("Expected string->int mapping")
 		}
-		if !HasMapping[int, string](mapper) {
+		if !Has[int, string](mapper) {
 			t.Error("Expected int->string mapping")
 		}
-		if !HasMapping[Person, PersonDTO](mapper) {
+		if !Has[Person, PersonDTO](mapper) {
 			t.Error("Expected Person->PersonDTO mapping")
 		}
 	})
 
-	t.Run("register_same_mapping_twice_overwrites", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("RegisterSameMappingTwiceOverwrites", func(t *testing.T) {
+		mapper := New()
 
 		// Register first function
 		Register(mapper, func(s string) int { return 1 })
@@ -146,16 +146,16 @@ func TestRegister(t *testing.T) {
 		}
 	})
 
-	t.Run("register_bidirectional_mappings", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("RegisterBidirectionalMappings", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, stringToInt)
 		Register(mapper, intToString)
 
 		// Should be able to map both ways
-		if !HasMapping[string, int](mapper) {
+		if !Has[string, int](mapper) {
 			t.Error("Expected string->int mapping")
 		}
-		if !HasMapping[int, string](mapper) {
+		if !Has[int, string](mapper) {
 			t.Error("Expected int->string mapping")
 		}
 	})
@@ -163,8 +163,8 @@ func TestRegister(t *testing.T) {
 
 // TestMap tests the mapping functionality
 func TestMap(t *testing.T) {
-	t.Run("map_registered_function", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("MapRegisteredFunction", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, stringToInt)
 
 		result, err := Map[string, int](mapper, "hello")
@@ -176,23 +176,8 @@ func TestMap(t *testing.T) {
 		}
 	})
 
-	t.Run("map_struct_conversion", func(t *testing.T) {
-		mapper := NewMapper()
-		Register(mapper, personToDTO)
-
-		person := Person{Name: "John", Age: 30}
-		result, err := Map[Person, PersonDTO](mapper, person)
-
-		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
-		}
-		if result.FullName != "John" || result.Years != 30 {
-			t.Errorf("Expected {John 30}, got %+v", result)
-		}
-	})
-
-	t.Run("map_unregistered_function_returns_error", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("MapUnregisteredFunctionReturnsError", func(t *testing.T) {
+		mapper := New()
 
 		_, err := Map[string, int](mapper, "test")
 		if err == nil {
@@ -205,8 +190,8 @@ func TestMap(t *testing.T) {
 		}
 	})
 
-	t.Run("map_zero_values", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("MapZeroValues", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, stringToInt)
 
 		result, err := Map[string, int](mapper, "zero")
@@ -217,9 +202,45 @@ func TestMap(t *testing.T) {
 			t.Errorf("Expected 0, got %d", result)
 		}
 	})
+	t.Run("MapNilInput", func(t *testing.T) {
+		mapper := New()
+		Register(mapper, func(p Person) PersonDTO {
+			return PersonDTO{
+				FullName: p.Name,
+				Years:    p.Age,
+			}
+		})
 
-	t.Run("map_empty_string", func(t *testing.T) {
-		mapper := NewMapper()
+		result, err := Map[*Person, PersonDTO](mapper, nil)
+
+		if err != nil {
+			t.Errorf("Unexpected error for nil input: %v", err)
+		}
+		if result != (PersonDTO{}) {
+			t.Errorf("Expected zero struct, got %+v", result)
+		}
+	})
+
+	t.Run("MapNilPointerToPointerReturnsNil", func(t *testing.T) {
+		mapper := New()
+		Register(mapper, func(p Person) PersonDTO {
+			return PersonDTO{
+				FullName: p.Name,
+				Years:    p.Age,
+			}
+		})
+
+		result, err := Map[*Person, *PersonDTO](mapper, nil)
+		if err != nil {
+			t.Errorf("Unexpected error for nil input: %v", err)
+		}
+		if result != nil {
+			t.Errorf("Expected nil result for nil input, got %+v", result)
+		}
+	})
+
+	t.Run("MapEmptyString", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, stringToInt)
 
 		result, err := Map[string, int](mapper, "")
@@ -231,8 +252,8 @@ func TestMap(t *testing.T) {
 		}
 	})
 
-	t.Run("map_empty_struct", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("MapEmptyStruct", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, emptyToEmpty)
 
 		empty := EmptyStruct{}
@@ -246,8 +267,8 @@ func TestMap(t *testing.T) {
 		}
 	})
 
-	t.Run("map_returns_zero_value_on_error", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("MapReturnsZeroValueOnError", func(t *testing.T) {
+		mapper := New()
 
 		result, err := Map[string, int](mapper, "test")
 		if err == nil {
@@ -258,14 +279,25 @@ func TestMap(t *testing.T) {
 		}
 	})
 
-	t.Run("map_pointer_types", func(t *testing.T) {
-		mapper := NewMapper()
-		Register(mapper, func(s *string) *int {
-			if s == nil {
-				return nil
-			}
-			length := len(*s)
-			return &length
+	t.Run("MapStructToStruct", func(t *testing.T) {
+		mapper := New()
+		Register(mapper, personToDTO)
+
+		person := Person{Name: "John", Age: 30}
+		result, err := Map[Person, PersonDTO](mapper, person)
+
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		if result.FullName != "John" || result.Years != 30 {
+			t.Errorf("Expected {John 30}, got %+v", result)
+		}
+	})
+	t.Run("MapPointerTypes", func(t *testing.T) {
+		mapper := New()
+		Register(mapper, func(s string) int {
+			length := len(s)
+			return length
 		})
 
 		str := "hello"
@@ -278,67 +310,224 @@ func TestMap(t *testing.T) {
 			t.Errorf("Expected pointer to 5, got %v", result)
 		}
 	})
+
+	t.Run("MapPointerToPointer", func(t *testing.T) {
+		mapper := New()
+		Register(mapper, func(p Person) PersonDTO {
+			return PersonDTO{
+				FullName: p.Name,
+				Years:    p.Age,
+			}
+		})
+
+		person := &Person{Name: "Alice", Age: 25}
+		result, err := Map[*Person, *PersonDTO](mapper, person)
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		if result == nil || result.FullName != "Alice" || result.Years != 25 {
+			t.Errorf("Expected &{Alice 25}, got %+v", result)
+		}
+
+		// Test nil pointer
+		result, err = Map[*Person, *PersonDTO](mapper, nil)
+		if err != nil {
+			t.Errorf("Unexpected error for nil input: %v", err)
+		}
+		if result != nil {
+			t.Errorf("Expected nil result for nil input, got %+v", result)
+		}
+	})
+
+	t.Run("MapPointerToStruct", func(t *testing.T) {
+		mapper := New()
+		Register(mapper, func(p Person) PersonDTO {
+			return PersonDTO{
+				FullName: p.Name,
+				Years:    p.Age,
+			}
+		})
+
+		person := &Person{Name: "Bob", Age: 40}
+		result, err := Map[*Person, PersonDTO](mapper, person)
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		if result.FullName != "Bob" || result.Years != 40 {
+			t.Errorf("Expected {Bob 40}, got %+v", result)
+		}
+
+		// Test nil pointer
+		result, err = Map[*Person, PersonDTO](mapper, nil)
+		if err != nil {
+			t.Errorf("Unexpected error for nil input: %v", err)
+		}
+		if result != (PersonDTO{}) {
+			t.Errorf("Expected zero value for nil input, got %+v", result)
+		}
+	})
+
+	t.Run("MapStructToPointer", func(t *testing.T) {
+		mapper := New()
+		Register(mapper, func(p Person) PersonDTO {
+			return PersonDTO{
+				FullName: p.Name,
+				Years:    p.Age,
+			}
+		})
+
+		person := Person{Name: "Eve", Age: 22}
+		result, err := Map[Person, *PersonDTO](mapper, person)
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		if result == nil || result.FullName != "Eve" || result.Years != 22 {
+			t.Errorf("Expected &{Eve 22}, got %+v", result)
+		}
+	})
 }
+
+// TestMapSlice tests the MapSlice functionality for all 4 pointer/value slice mapping cases
+func TestMapSlice(t *testing.T) {
+	type A struct{ V int }
+	type B struct{ W int }
+
+	// Mapping function: value-to-value
+	aToB := func(a A) B { return B{W: a.V + 1} }
+
+	t.Run("SliceValueToValue", func(t *testing.T) {
+		mapper := New()
+		Register(mapper, aToB)
+
+		src := []A{{1}, {2}, {3}}
+		got, err := MapSlice[[]A, []B](mapper, src)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		want := []B{{2}, {3}, {4}}
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("expected %v, got %v", want, got)
+		}
+	})
+
+	t.Run("SlicePointerToPointer", func(t *testing.T) {
+		mapper := New()
+		Register(mapper, aToB)
+
+		src := []*A{{1}, nil, {3}}
+		got, err := MapSlice[[]*A, []*B](mapper, src)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		want := []*B{{2}, nil, {4}}
+		for i := range want {
+			if src[i] == nil {
+				if got[i] != nil {
+					t.Errorf("expected nil at %d, got %v", i, got[i])
+				}
+			} else {
+				if got[i] == nil || got[i].W != want[i].W {
+					t.Errorf("expected %v at %d, got %v", want[i], i, got[i])
+				}
+			}
+		}
+	})
+
+	t.Run("SlicePointerToValue", func(t *testing.T) {
+		mapper := New()
+		Register(mapper, aToB)
+
+		src := []*A{{10}, nil, {30}}
+		got, err := MapSlice[[]*A, []B](mapper, src)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		want := []B{{11}, {}, {31}}
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("expected %v, got %v", want, got)
+		}
+	})
+
+	t.Run("SliceValueToPointer", func(t *testing.T) {
+		mapper := New()
+		Register(mapper, aToB)
+
+		src := []A{{100}, {200}}
+		got, err := MapSlice[[]A, []*B](mapper, src)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(got) != len(src) {
+			t.Fatalf("expected length %d, got %d", len(src), len(got))
+		}
+		for i, v := range src {
+			if got[i] == nil || got[i].W != v.V+1 {
+				t.Errorf("expected pointer to {W:%d} at %d, got %v", v.V+1, i, got[i])
+			}
+		}
+	})
+}
+
 
 // TestHasMapping tests the mapping existence check
 func TestHasMapping(t *testing.T) {
-	t.Run("has_mapping_returns_true_for_registered", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("HasMappingReturnsTrueForRegistered", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, stringToInt)
 
-		if !HasMapping[string, int](mapper) {
+		if !Has[string, int](mapper) {
 			t.Error("Expected HasMapping to return true")
 		}
 	})
 
-	t.Run("has_mapping_returns_false_for_unregistered", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("HasMappingReturnsFalseForUnregistered", func(t *testing.T) {
+		mapper := New()
 
-		if HasMapping[string, int](mapper) {
+		if Has[string, int](mapper) {
 			t.Error("Expected HasMapping to return false")
 		}
 	})
 
-	t.Run("has_mapping_different_type_combinations", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("HasMappingDifferentTypeCombinations", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, stringToInt)
 
 		// Registered mapping
-		if !HasMapping[string, int](mapper) {
+		if !Has[string, int](mapper) {
 			t.Error("Expected string->int mapping")
 		}
 
 		// Reverse mapping not registered
-		if HasMapping[int, string](mapper) {
+		if Has[int, string](mapper) {
 			t.Error("Expected int->string mapping to not exist")
 		}
 
 		// Completely different types
-		if HasMapping[Person, PersonDTO](mapper) {
+		if Has[Person, PersonDTO](mapper) {
 			t.Error("Expected Person->PersonDTO mapping to not exist")
 		}
 	})
 
-	t.Run("has_mapping_empty_struct", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("HasMappingEmptyStruct", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, emptyToEmpty)
 
-		if !HasMapping[EmptyStruct, EmptyStruct](mapper) {
+		if !Has[EmptyStruct, EmptyStruct](mapper) {
 			t.Error("Expected EmptyStruct->EmptyStruct mapping")
 		}
 	})
 
-	t.Run("has_mapping_after_removal", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("HasMappingAfterRemoval", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, stringToInt)
 
-		if !HasMapping[string, int](mapper) {
+		if !Has[string, int](mapper) {
 			t.Error("Expected mapping before removal")
 		}
 
-		RemoveMapping[string, int](mapper)
+		Remove[string, int](mapper)
 
-		if HasMapping[string, int](mapper) {
+		if Has[string, int](mapper) {
 			t.Error("Expected mapping to not exist after removal")
 		}
 	})
@@ -346,23 +535,23 @@ func TestHasMapping(t *testing.T) {
 
 // TestRemoveMapping tests the mapping removal functionality
 func TestRemoveMapping(t *testing.T) {
-	t.Run("remove_existing_mapping", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("RemoveExistingMapping", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, stringToInt)
 
-		if !HasMapping[string, int](mapper) {
+		if !Has[string, int](mapper) {
 			t.Error("Expected mapping to exist before removal")
 		}
 
-		RemoveMapping[string, int](mapper)
+		Remove[string, int](mapper)
 
-		if HasMapping[string, int](mapper) {
+		if Has[string, int](mapper) {
 			t.Error("Expected mapping to be removed")
 		}
 	})
 
-	t.Run("remove_nonexistent_mapping_no_panic", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("RemoveNonexistentMappingNoPanic", func(t *testing.T) {
+		mapper := New()
 
 		// Should not panic
 		defer func() {
@@ -371,36 +560,36 @@ func TestRemoveMapping(t *testing.T) {
 			}
 		}()
 
-		RemoveMapping[string, int](mapper)
+		Remove[string, int](mapper)
 	})
 
-	t.Run("remove_one_of_multiple_mappings", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("RemoveOneOfMultipleMappings", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, stringToInt)
 		Register(mapper, intToString)
 		Register(mapper, personToDTO)
 
-		RemoveMapping[string, int](mapper)
+		Remove[string, int](mapper)
 
-		if HasMapping[string, int](mapper) {
+		if Has[string, int](mapper) {
 			t.Error("Expected string->int mapping to be removed")
 		}
-		if !HasMapping[int, string](mapper) {
+		if !Has[int, string](mapper) {
 			t.Error("Expected int->string mapping to remain")
 		}
-		if !HasMapping[Person, PersonDTO](mapper) {
+		if !Has[Person, PersonDTO](mapper) {
 			t.Error("Expected Person->PersonDTO mapping to remain")
 		}
 	})
 
-	t.Run("remove_and_re_register", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("RemoveAndReRegister", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, stringToInt)
 
-		RemoveMapping[string, int](mapper)
+		Remove[string, int](mapper)
 		Register(mapper, stringToInt)
 
-		if !HasMapping[string, int](mapper) {
+		if !Has[string, int](mapper) {
 			t.Error("Expected mapping to exist after re-registration")
 		}
 
@@ -416,8 +605,8 @@ func TestRemoveMapping(t *testing.T) {
 
 // TestList tests the mapping listing functionality
 func TestList(t *testing.T) {
-	t.Run("list_empty_mappings", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("ListEmptyMappings", func(t *testing.T) {
+		mapper := New()
 		mappings := List(mapper)
 
 		if len(mappings) != 0 {
@@ -425,8 +614,8 @@ func TestList(t *testing.T) {
 		}
 	})
 
-	t.Run("list_single_mapping", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("ListSingleMapping", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, stringToInt)
 
 		mappings := List(mapper)
@@ -441,8 +630,8 @@ func TestList(t *testing.T) {
 		}
 	})
 
-	t.Run("list_multiple_mappings", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("ListMultipleMappings", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, stringToInt)
 		Register(mapper, intToString)
 		Register(mapper, personToDTO)
@@ -468,12 +657,12 @@ func TestList(t *testing.T) {
 		}
 	})
 
-	t.Run("list_mappings_after_removal", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("ListMappingsAfterRemoval", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, stringToInt)
 		Register(mapper, intToString)
 
-		RemoveMapping[string, int](mapper)
+		Remove[string, int](mapper)
 		mappings := List(mapper)
 
 		if len(mappings) != 1 {
@@ -486,8 +675,8 @@ func TestList(t *testing.T) {
 		}
 	})
 
-	t.Run("list_mappings_returns_copy", func(t *testing.T) {
-		mapper := NewMapper()
+	t.Run("ListMappingsReturnsCopy", func(t *testing.T) {
+		mapper := New()
 		Register(mapper, stringToInt)
 
 		mappings1 := List(mapper)

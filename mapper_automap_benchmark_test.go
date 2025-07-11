@@ -4,9 +4,10 @@ import (
 	"testing"
 )
 
-// Benchmark tests for AutoMap and RegisterAutoMap
+// Benchmark tests for AutoMap and RegisterAutoMap functionality
 
-func BenchmarkAutoMap(b *testing.B) {
+// BenchmarkAutoMapSimpleStruct measures performance of automatic mapping between simple structs
+func BenchmarkAutoMapSimpleStruct(b *testing.B) {
 	type Source struct {
 		Name  string
 		Age   int
@@ -22,11 +23,12 @@ func BenchmarkAutoMap(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = AutoMap[Source, Dest](src)
+		_ = autoMap[Source, Dest](src)
 	}
 }
 
-func BenchmarkAutoMapComplex(b *testing.B) {
+// BenchmarkAutoMapComplexStruct measures performance of automatic mapping between complex nested structs
+func BenchmarkAutoMapComplexStruct(b *testing.B) {
 	type Address struct {
 		Street string
 		City   string
@@ -71,10 +73,11 @@ func BenchmarkAutoMapComplex(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = AutoMap[Source, Dest](src)
+		_ = autoMap[Source, Dest](src)
 	}
 }
 
+// BenchmarkAutoMapWithPointers measures performance of automatic mapping between structs with pointer fields
 func BenchmarkAutoMapWithPointers(b *testing.B) {
 	type Source struct {
 		Name  *string
@@ -94,7 +97,7 @@ func BenchmarkAutoMapWithPointers(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = AutoMap[Source, Dest](src)
+		_ = autoMap[Source, Dest](src)
 	}
 }
 
@@ -103,7 +106,7 @@ func BenchmarkAutoMapPrimitive(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = AutoMap[string, string](src)
+		_ = autoMap[string, string](src)
 	}
 }
 
@@ -117,7 +120,7 @@ func BenchmarkRegisterAutoMap(b *testing.B) {
 		Name string
 		Age  int
 	}
-	mapper := NewMapper()
+	mapper := New()
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -137,7 +140,7 @@ func BenchmarkMapWithAutoMap(b *testing.B) {
 		Email string
 	}
 
-	mapper := NewMapper()
+	mapper := New()
 	RegisterAutoMap[Source, Dest](mapper)
 	src := Source{Name: "John Doe", Age: 30, Email: "john@example.com"}
 
@@ -165,7 +168,7 @@ func BenchmarkMapWithAutoMapComplex(b *testing.B) {
 		Tags    []string
 	}
 
-	mapper := NewMapper()
+	mapper := New()
 	RegisterAutoMap[Source, Dest](mapper)
 	src := Source{
 		Name:    "John Doe",
@@ -180,55 +183,6 @@ func BenchmarkMapWithAutoMapComplex(b *testing.B) {
 	}
 }
 
-// Benchmark comparison: AutoMap vs Manual mapping
-func BenchmarkManualMappingVsAutoMap(b *testing.B) {
-	type Source struct {
-		Name  string
-		Age   int
-		Email string
-	}
-	type Dest struct {
-		Name  string
-		Age   int
-		Email string
-	}
-
-	src := Source{Name: "John Doe", Age: 30, Email: "john@example.com"}
-
-	b.Run("Manual", func(b *testing.B) {
-		mapper := NewMapper()
-		Register(mapper, func(s Source) Dest {
-			return Dest{
-				Name:  s.Name,
-				Age:   s.Age,
-				Email: s.Email,
-			}
-		})
-
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
-			_, _ = Map[Source, Dest](mapper, src)
-		}
-	})
-
-	b.Run("AutoMap", func(b *testing.B) {
-		mapper := NewMapper()
-		RegisterAutoMap[Source, Dest](mapper)
-
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
-			_, _ = Map[Source, Dest](mapper, src)
-		}
-	})
-
-	b.Run("DirectAutoMap", func(b *testing.B) {
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
-			_ = AutoMap[Source, Dest](src)
-		}
-	})
-}
-
 // Benchmark AutoMap with different struct sizes
 func BenchmarkAutoMapStructSizes(b *testing.B) {
 	b.Run("Small", func(b *testing.B) {
@@ -240,7 +194,7 @@ func BenchmarkAutoMapStructSizes(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_ = AutoMap[Small, Small](src)
+			_ = autoMap[Small, Small](src)
 		}
 	})
 
@@ -256,7 +210,7 @@ func BenchmarkAutoMapStructSizes(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_ = AutoMap[Medium, Medium](src)
+			_ = autoMap[Medium, Medium](src)
 		}
 	})
 
@@ -276,7 +230,7 @@ func BenchmarkAutoMapStructSizes(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_ = AutoMap[Large, Large](src)
+			_ = autoMap[Large, Large](src)
 		}
 	})
 }

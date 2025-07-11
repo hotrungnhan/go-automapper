@@ -7,7 +7,7 @@ import (
 
 // TestAutoMap tests the automatic mapping functionality
 func TestAutoMap(t *testing.T) {
-	t.Run("automap_struct_with_same_field_names", func(t *testing.T) {
+	t.Run("AutoMapStructWithSameFieldNames", func(t *testing.T) {
 		type Source struct {
 			Name string
 			Age  int
@@ -18,14 +18,14 @@ func TestAutoMap(t *testing.T) {
 		}
 
 		src := Source{Name: "John", Age: 30}
-		result := AutoMap[Source, Dest](src)
+		result := autoMap[Source, Dest](src)
 
 		if result.Name != "John" || result.Age != 30 {
 			t.Errorf("Expected {John 30}, got %+v", result)
 		}
 	})
 
-	t.Run("automap_struct_with_different_field_names", func(t *testing.T) {
+	t.Run("AutoMapStructWithDifferentFieldNames", func(t *testing.T) {
 		type Source struct {
 			Name string
 			Age  int
@@ -36,7 +36,7 @@ func TestAutoMap(t *testing.T) {
 		}
 
 		src := Source{Name: "John", Age: 30}
-		result := AutoMap[Source, Dest](src)
+		result := autoMap[Source, Dest](src)
 
 		// Should only copy matching field names, others remain zero values
 		if result.FullName != "" || result.Years != 0 {
@@ -44,7 +44,7 @@ func TestAutoMap(t *testing.T) {
 		}
 	})
 
-	t.Run("automap_struct_partial_match", func(t *testing.T) {
+	t.Run("AutoMapStructPartialMatch", func(t *testing.T) {
 		type Source struct {
 			Name  string
 			Age   int
@@ -57,7 +57,7 @@ func TestAutoMap(t *testing.T) {
 		}
 
 		src := Source{Name: "John", Age: 30, Email: "john@example.com"}
-		result := AutoMap[Source, Dest](src)
+		result := autoMap[Source, Dest](src)
 
 		if result.Name != "John" || result.Age != 30 {
 			t.Errorf("Expected matching fields to be copied, got %+v", result)
@@ -67,7 +67,7 @@ func TestAutoMap(t *testing.T) {
 		}
 	})
 
-	t.Run("automap_nested_structs", func(t *testing.T) {
+	t.Run("AutoMapNestedStructs", func(t *testing.T) {
 		type Address struct {
 			Street string
 			City   string
@@ -85,7 +85,7 @@ func TestAutoMap(t *testing.T) {
 			Name:    "John",
 			Address: Address{Street: "123 Main St", City: "NYC"},
 		}
-		result := AutoMap[Source, Dest](src)
+		result := autoMap[Source, Dest](src)
 
 		if result.Name != "John" {
 			t.Errorf("Expected Name to be copied, got %s", result.Name)
@@ -95,7 +95,7 @@ func TestAutoMap(t *testing.T) {
 		}
 	})
 
-	t.Run("automap_slice_fields", func(t *testing.T) {
+	t.Run("AutoMapSliceFields", func(t *testing.T) {
 		type Source struct {
 			Name string
 			Tags []string
@@ -112,7 +112,7 @@ func TestAutoMap(t *testing.T) {
 			Tags: []string{"dev", "go"},
 			Nums: []int{1, 2, 3},
 		}
-		result := AutoMap[Source, Dest](src)
+		result := autoMap[Source, Dest](src)
 
 		if result.Name != "John" {
 			t.Errorf("Expected Name to be copied, got %s", result.Name)
@@ -125,7 +125,7 @@ func TestAutoMap(t *testing.T) {
 		}
 	})
 
-	t.Run("automap_pointer_fields", func(t *testing.T) {
+	t.Run("AutoMapPointerFields", func(t *testing.T) {
 		type Source struct {
 			Name *string
 			Age  *int
@@ -138,7 +138,7 @@ func TestAutoMap(t *testing.T) {
 		name := "John"
 		age := 30
 		src := Source{Name: &name, Age: &age}
-		result := AutoMap[Source, Dest](src)
+		result := autoMap[Source, Dest](src)
 
 		if result.Name == nil || *result.Name != "John" {
 			t.Errorf("Expected Name pointer to be copied, got %v", result.Name)
@@ -153,7 +153,7 @@ func TestAutoMap(t *testing.T) {
 		}
 	})
 
-	t.Run("automap_map_fields", func(t *testing.T) {
+	t.Run("AutoMapMapFields", func(t *testing.T) {
 		type Source struct {
 			Name   string
 			Attrs  map[string]string
@@ -170,7 +170,7 @@ func TestAutoMap(t *testing.T) {
 			Attrs:  map[string]string{"role": "dev", "team": "backend"},
 			Counts: map[string]int{"projects": 5, "bugs": 2},
 		}
-		result := AutoMap[Source, Dest](src)
+		result := autoMap[Source, Dest](src)
 
 		if result.Name != "John" {
 			t.Errorf("Expected Name to be copied, got %s", result.Name)
@@ -183,7 +183,7 @@ func TestAutoMap(t *testing.T) {
 		}
 	})
 
-	t.Run("automap_interface_fields", func(t *testing.T) {
+	t.Run("AutoMapInterfaceFields", func(t *testing.T) {
 		type Source struct {
 			Name  string
 			Value interface{}
@@ -194,7 +194,7 @@ func TestAutoMap(t *testing.T) {
 		}
 
 		src := Source{Name: "John", Value: 42}
-		result := AutoMap[Source, Dest](src)
+		result := autoMap[Source, Dest](src)
 
 		if result.Name != "John" {
 			t.Errorf("Expected Name to be copied, got %s", result.Name)
@@ -204,43 +204,43 @@ func TestAutoMap(t *testing.T) {
 		}
 	})
 
-	t.Run("automap_empty_struct", func(t *testing.T) {
+	t.Run("AutoMapEmptyStruct", func(t *testing.T) {
 		type Empty struct{}
 
 		src := Empty{}
-		result := AutoMap[Empty, Empty](src)
+		result := autoMap[Empty, Empty](src)
 
 		if !reflect.DeepEqual(src, result) {
 			t.Error("Expected empty structs to be equal")
 		}
 	})
 
-	t.Run("automap_primitive_types", func(t *testing.T) {
+	t.Run("AutoMapPrimitiveTypes", func(t *testing.T) {
 		// String to string
 		src := "hello"
-		result := AutoMap[string, string](src)
+		result := autoMap[string, string](src)
 		if result != "hello" {
 			t.Errorf("Expected 'hello', got %s", result)
 		}
 
 		// Int to int
 		srcInt := 42
-		resultInt := AutoMap[int, int](srcInt)
+		resultInt := autoMap[int, int](srcInt)
 		if resultInt != 42 {
 			t.Errorf("Expected 42, got %d", resultInt)
 		}
 	})
 
-	t.Run("automap_different_primitive_types", func(t *testing.T) {
+	t.Run("AutoMapDifferentPrimitiveTypes", func(t *testing.T) {
 		// This should fail or return zero value since types don't match
 		src := "hello"
-		result := AutoMap[string, int](src)
+		result := autoMap[string, int](src)
 		if result != 0 {
 			t.Errorf("Expected zero value for incompatible types, got %d", result)
 		}
 	})
 
-	t.Run("automap_with_embedded_structs", func(t *testing.T) {
+	t.Run("AutoMapWithEmbeddedStructs", func(t *testing.T) {
 		type BaseInfo struct {
 			ID   int
 			Name string
@@ -258,7 +258,7 @@ func TestAutoMap(t *testing.T) {
 			BaseInfo: BaseInfo{ID: 1, Name: "John"},
 			Email:    "john@example.com",
 		}
-		result := AutoMap[Source, Dest](src)
+		result := autoMap[Source, Dest](src)
 
 		if result.ID != 1 || result.Name != "John" || result.Email != "john@example.com" {
 			t.Errorf("Expected embedded struct fields to be copied, got %+v", result)
@@ -268,7 +268,7 @@ func TestAutoMap(t *testing.T) {
 
 // TestRegisterAutoMap tests the automatic mapping registration functionality
 func TestRegisterAutoMap(t *testing.T) {
-	t.Run("register_automap_simple_struct", func(t *testing.T) {
+	t.Run("RegisterAutoMapSimpleStruct", func(t *testing.T) {
 		type Source struct {
 			Name string
 			Age  int
@@ -278,10 +278,10 @@ func TestRegisterAutoMap(t *testing.T) {
 			Age  int
 		}
 
-		mapper := NewMapper()
+		mapper := New()
 		RegisterAutoMap[Source, Dest](mapper)
 
-		if !HasMapping[Source, Dest](mapper) {
+		if !Has[Source, Dest](mapper) {
 			t.Error("Expected automap to be registered")
 		}
 
@@ -296,7 +296,7 @@ func TestRegisterAutoMap(t *testing.T) {
 		}
 	})
 
-	t.Run("register_automap_partial_match", func(t *testing.T) {
+	t.Run("RegisterAutoMapPartialMatch", func(t *testing.T) {
 		type Source struct {
 			Name  string
 			Age   int
@@ -308,7 +308,7 @@ func TestRegisterAutoMap(t *testing.T) {
 			City string // No matching field
 		}
 
-		mapper := NewMapper()
+		mapper := New()
 		RegisterAutoMap[Source, Dest](mapper)
 
 		src := Source{Name: "John", Age: 30, Email: "john@example.com"}
@@ -325,7 +325,7 @@ func TestRegisterAutoMap(t *testing.T) {
 		}
 	})
 
-	t.Run("register_automap_multiple_types", func(t *testing.T) {
+	t.Run("RegisterAutoMapMultipleTypes", func(t *testing.T) {
 		type Person struct {
 			Name string
 			Age  int
@@ -343,7 +343,7 @@ func TestRegisterAutoMap(t *testing.T) {
 			City   string
 		}
 
-		mapper := NewMapper()
+		mapper := New()
 		RegisterAutoMap[Person, PersonDTO](mapper)
 		RegisterAutoMap[Address, AddressDTO](mapper)
 
@@ -368,7 +368,7 @@ func TestRegisterAutoMap(t *testing.T) {
 		}
 	})
 
-	t.Run("register_automap_overwrites_existing", func(t *testing.T) {
+	t.Run("RegisterAutoMapOverwritesExisting", func(t *testing.T) {
 		type Source struct {
 			Name string
 			Age  int
@@ -378,7 +378,7 @@ func TestRegisterAutoMap(t *testing.T) {
 			Age  int
 		}
 
-		mapper := NewMapper()
+		mapper := New()
 
 		// Register manual mapping first
 		Register(mapper, func(s Source) Dest {
@@ -400,7 +400,7 @@ func TestRegisterAutoMap(t *testing.T) {
 		}
 	})
 
-	t.Run("register_automap_complex_nested_structs", func(t *testing.T) {
+	t.Run("RegisterAutoMapComplexNestedStructs", func(t *testing.T) {
 		type Address struct {
 			Street string
 			City   string
@@ -425,7 +425,7 @@ func TestRegisterAutoMap(t *testing.T) {
 			Tags    []string
 		}
 
-		mapper := NewMapper()
+		mapper := New()
 		RegisterAutoMap[Source, Dest](mapper)
 
 		src := Source{
@@ -462,7 +462,7 @@ func TestRegisterAutoMap(t *testing.T) {
 		}
 	})
 
-	t.Run("register_automap_with_pointers", func(t *testing.T) {
+	t.Run("RegisterAutoMapWithPointers", func(t *testing.T) {
 		type Source struct {
 			Name *string
 			Age  *int
@@ -472,7 +472,7 @@ func TestRegisterAutoMap(t *testing.T) {
 			Age  *int
 		}
 
-		mapper := NewMapper()
+		mapper := New()
 		RegisterAutoMap[Source, Dest](mapper)
 
 		name := "John"
@@ -492,7 +492,7 @@ func TestRegisterAutoMap(t *testing.T) {
 		}
 	})
 
-	t.Run("register_automap_bidirectional", func(t *testing.T) {
+	t.Run("RegisterAutoMapBidirectional", func(t *testing.T) {
 		type PersonA struct {
 			Name string
 			Age  int
@@ -502,7 +502,7 @@ func TestRegisterAutoMap(t *testing.T) {
 			Age  int
 		}
 
-		mapper := NewMapper()
+		mapper := New()
 		RegisterAutoMap[PersonA, PersonB](mapper)
 		RegisterAutoMap[PersonB, PersonA](mapper)
 
@@ -527,7 +527,7 @@ func TestRegisterAutoMap(t *testing.T) {
 		}
 	})
 
-	t.Run("register_automap_reverse_map", func(t *testing.T) {
+	t.Run("RegisterAutoMapReverseMap", func(t *testing.T) {
 		type Foo struct {
 			X int
 			Y string
@@ -537,7 +537,7 @@ func TestRegisterAutoMap(t *testing.T) {
 			Y string
 		}
 
-		mapper := NewMapper()
+		mapper := New()
 		RegisterAutoMap[Foo, Bar](mapper)
 		RegisterAutoMap[Bar, Foo](mapper)
 
