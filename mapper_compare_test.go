@@ -31,6 +31,7 @@ func BenchmarkMapStructCompare(b *testing.B) {
 				Email: src.Email,
 			}
 		}
+
 		b.StopTimer()
 		assert.Equal(b, "John Doe", dst.Name)
 		assert.Equal(b, 30, dst.Age)
