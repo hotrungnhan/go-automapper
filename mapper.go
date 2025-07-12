@@ -264,6 +264,37 @@ func Map[S any, D any](m Mapper, src S) (D, error) {
 	return dst, nil
 }
 
+// MustMap is like Map but panics if mapping fails.
+// It is useful for cases where mapping failure is considered a programmer error.
+//
+// Type Parameters:
+//   - S: Source type
+//   - D: Destination type
+//
+// Parameters:
+//   - m: The mapper instance
+//   - src: The source value to be mapped
+//
+// Returns:
+//   - D: The mapped result of type D
+//
+// Panics:
+//   - If no mapping function is registered for the type pair, or if mapping fails
+//
+// Example:
+//
+//	mapper := New()
+//	Register(mapper, func(s string) int { return len(s) })
+//	result := MustMap[string, int](mapper, "hello")
+//	fmt.Println(result) // Output: 5
+func MustMap[S any, D any](m Mapper, src S) D {
+	result, err := Map[S, D](m, src)
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
 // MapSlice applies a registered mapping function to each element of a slice,
 // returning a new slice with the mapped elements. It supports various combinations
 // of slice element types including values and pointers.
@@ -474,6 +505,37 @@ func MapSlice[S any, D any](m Mapper, src S) (D, error) {
 	}
 
 	return dstSlice.Interface().(D), nil
+}
+
+// MustMapSlice is like MapSlice but panics if mapping fails.
+// It is useful for cases where mapping failure is considered a programmer error.
+//
+// Type Parameters:
+//   - S: Source slice type (e.g., []SourceType, []*SourceType)
+//   - D: Destination slice type (e.g., []DestType, []*DestType)
+//
+// Parameters:
+//   - m: The mapper instance
+//   - src: The source slice to be mapped
+//
+// Returns:
+//   - D: The mapped result slice of type D
+//
+// Panics:
+//   - If no mapping function is registered for the element types, or if mapping fails
+//
+// Example:
+//
+//	mapper := New()
+//	Register(mapper, func(s string) int { return len(s) })
+//	result := MustMapSlice[[]string, []int](mapper, []string{"a", "bb"})
+//	fmt.Println(result) // Output: [1 2]
+func MustMapSlice[S any, D any](m Mapper, src S) D {
+	result, err := MapSlice[S, D](m, src)
+	if err != nil {
+		panic(err)
+	}
+	return result
 }
 
 // Has checks if a mapping function is registered for the specified type pair.
