@@ -3,9 +3,10 @@ package mapper
 import (
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-// TestAutoMap tests the automatic mapping functionality
 func TestAutoMap(t *testing.T) {
 	t.Run("AutoMapStructWithSameFieldNames", func(t *testing.T) {
 		type Source struct {
@@ -20,9 +21,8 @@ func TestAutoMap(t *testing.T) {
 		src := Source{Name: "John", Age: 30}
 		result := autoMap[Source, Dest](src)
 
-		if result.Name != "John" || result.Age != 30 {
-			t.Errorf("Expected {John 30}, got %+v", result)
-		}
+		assert.Equal(t, "John", result.Name)
+		assert.Equal(t, 30, result.Age)
 	})
 
 	t.Run("AutoMapStructWithDifferentFieldNames", func(t *testing.T) {
@@ -38,10 +38,8 @@ func TestAutoMap(t *testing.T) {
 		src := Source{Name: "John", Age: 30}
 		result := autoMap[Source, Dest](src)
 
-		// Should only copy matching field names, others remain zero values
-		if result.FullName != "" || result.Years != 0 {
-			t.Errorf("Expected zero values for non-matching fields, got %+v", result)
-		}
+		assert.Zero(t, result.FullName)
+		assert.Zero(t, result.Years)
 	})
 
 	t.Run("AutoMapStructPartialMatch", func(t *testing.T) {
@@ -53,18 +51,15 @@ func TestAutoMap(t *testing.T) {
 		type Dest struct {
 			Name string
 			Age  int
-			City string // No matching field in source
+			City string
 		}
 
 		src := Source{Name: "John", Age: 30, Email: "john@example.com"}
 		result := autoMap[Source, Dest](src)
 
-		if result.Name != "John" || result.Age != 30 {
-			t.Errorf("Expected matching fields to be copied, got %+v", result)
-		}
-		if result.City != "" {
-			t.Errorf("Expected City to be zero value, got %s", result.City)
-		}
+		assert.Equal(t, "John", result.Name)
+		assert.Equal(t, 30, result.Age)
+		assert.Zero(t, result.City)
 	})
 
 	t.Run("AutoMapNestedStructs", func(t *testing.T) {
@@ -87,12 +82,9 @@ func TestAutoMap(t *testing.T) {
 		}
 		result := autoMap[Source, Dest](src)
 
-		if result.Name != "John" {
-			t.Errorf("Expected Name to be copied, got %s", result.Name)
-		}
-		if result.Address.Street != "123 Main St" || result.Address.City != "NYC" {
-			t.Errorf("Expected nested struct to be copied, got %+v", result.Address)
-		}
+		assert.Equal(t, "John", result.Name)
+		assert.Equal(t, "123 Main St", result.Address.Street)
+		assert.Equal(t, "NYC", result.Address.City)
 	})
 
 	t.Run("AutoMapSliceFields", func(t *testing.T) {
@@ -114,15 +106,9 @@ func TestAutoMap(t *testing.T) {
 		}
 		result := autoMap[Source, Dest](src)
 
-		if result.Name != "John" {
-			t.Errorf("Expected Name to be copied, got %s", result.Name)
-		}
-		if len(result.Tags) != 2 || result.Tags[0] != "dev" || result.Tags[1] != "go" {
-			t.Errorf("Expected Tags to be copied, got %+v", result.Tags)
-		}
-		if len(result.Nums) != 3 || result.Nums[0] != 1 || result.Nums[2] != 3 {
-			t.Errorf("Expected Nums to be copied, got %+v", result.Nums)
-		}
+		assert.Equal(t, "John", result.Name)
+		assert.Equal(t, []string{"dev", "go"}, result.Tags)
+		assert.Equal(t, []int{1, 2, 3}, result.Nums)
 	})
 
 	t.Run("AutoMapPointerFields", func(t *testing.T) {
@@ -140,17 +126,11 @@ func TestAutoMap(t *testing.T) {
 		src := Source{Name: &name, Age: &age}
 		result := autoMap[Source, Dest](src)
 
-		if result.Name == nil || *result.Name != "John" {
-			t.Errorf("Expected Name pointer to be copied, got %v", result.Name)
-		}
-		if result.Age == nil || *result.Age != 30 {
-			t.Errorf("Expected Age pointer to be copied, got %v", result.Age)
-		}
-
-		// Verify deep copy (different pointers)
-		if result.Name == src.Name {
-			t.Error("Expected deep copy, but pointers are the same")
-		}
+		assert.NotNil(t, result.Name)
+		assert.NotNil(t, result.Age)
+		assert.Equal(t, "John", *result.Name)
+		assert.Equal(t, 30, *result.Age)
+		assert.NotSame(t, src.Name, result.Name)
 	})
 
 	t.Run("AutoMapMapFields", func(t *testing.T) {
@@ -172,15 +152,9 @@ func TestAutoMap(t *testing.T) {
 		}
 		result := autoMap[Source, Dest](src)
 
-		if result.Name != "John" {
-			t.Errorf("Expected Name to be copied, got %s", result.Name)
-		}
-		if len(result.Attrs) != 2 || result.Attrs["role"] != "dev" {
-			t.Errorf("Expected Attrs to be copied, got %+v", result.Attrs)
-		}
-		if len(result.Counts) != 2 || result.Counts["projects"] != 5 {
-			t.Errorf("Expected Counts to be copied, got %+v", result.Counts)
-		}
+		assert.Equal(t, "John", result.Name)
+		assert.Equal(t, map[string]string{"role": "dev", "team": "backend"}, result.Attrs)
+		assert.Equal(t, map[string]int{"projects": 5, "bugs": 2}, result.Counts)
 	})
 
 	t.Run("AutoMapInterfaceFields", func(t *testing.T) {
@@ -196,12 +170,8 @@ func TestAutoMap(t *testing.T) {
 		src := Source{Name: "John", Value: 42}
 		result := autoMap[Source, Dest](src)
 
-		if result.Name != "John" {
-			t.Errorf("Expected Name to be copied, got %s", result.Name)
-		}
-		if result.Value != 42 {
-			t.Errorf("Expected Value to be copied, got %v", result.Value)
-		}
+		assert.Equal(t, "John", result.Name)
+		assert.Equal(t, 42, result.Value)
 	})
 
 	t.Run("AutoMapEmptyStruct", func(t *testing.T) {
@@ -210,34 +180,23 @@ func TestAutoMap(t *testing.T) {
 		src := Empty{}
 		result := autoMap[Empty, Empty](src)
 
-		if !reflect.DeepEqual(src, result) {
-			t.Error("Expected empty structs to be equal")
-		}
+		assert.True(t, reflect.DeepEqual(src, result))
 	})
 
 	t.Run("AutoMapPrimitiveTypes", func(t *testing.T) {
-		// String to string
 		src := "hello"
 		result := autoMap[string, string](src)
-		if result != "hello" {
-			t.Errorf("Expected 'hello', got %s", result)
-		}
+		assert.Equal(t, "hello", result)
 
-		// Int to int
 		srcInt := 42
 		resultInt := autoMap[int, int](srcInt)
-		if resultInt != 42 {
-			t.Errorf("Expected 42, got %d", resultInt)
-		}
+		assert.Equal(t, 42, resultInt)
 	})
 
 	t.Run("AutoMapDifferentPrimitiveTypes", func(t *testing.T) {
-		// This should fail or return zero value since types don't match
 		src := "hello"
 		result := autoMap[string, int](src)
-		if result != 0 {
-			t.Errorf("Expected zero value for incompatible types, got %d", result)
-		}
+		assert.Zero(t, result)
 	})
 
 	t.Run("AutoMapWithEmbeddedStructs", func(t *testing.T) {
@@ -260,13 +219,12 @@ func TestAutoMap(t *testing.T) {
 		}
 		result := autoMap[Source, Dest](src)
 
-		if result.ID != 1 || result.Name != "John" || result.Email != "john@example.com" {
-			t.Errorf("Expected embedded struct fields to be copied, got %+v", result)
-		}
+		assert.Equal(t, 1, result.ID)
+		assert.Equal(t, "John", result.Name)
+		assert.Equal(t, "john@example.com", result.Email)
 	})
 }
 
-// TestRegisterAutoMap tests the automatic mapping registration functionality
 func TestRegisterAutoMap(t *testing.T) {
 	t.Run("RegisterAutoMapSimpleStruct", func(t *testing.T) {
 		type Source struct {
@@ -281,19 +239,14 @@ func TestRegisterAutoMap(t *testing.T) {
 		mapper := New()
 		RegisterAutoMap[Source, Dest](mapper)
 
-		if !Has[Source, Dest](mapper) {
-			t.Error("Expected automap to be registered")
-		}
+		assert.True(t, Has[Source, Dest](mapper))
 
 		src := Source{Name: "John", Age: 30}
 		result, err := Map[Source, Dest](mapper, src)
 
-		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
-		}
-		if result.Name != "John" || result.Age != 30 {
-			t.Errorf("Expected {John 30}, got %+v", result)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, "John", result.Name)
+		assert.Equal(t, 30, result.Age)
 	})
 
 	t.Run("RegisterAutoMapPartialMatch", func(t *testing.T) {
@@ -305,7 +258,7 @@ func TestRegisterAutoMap(t *testing.T) {
 		type Dest struct {
 			Name string
 			Age  int
-			City string // No matching field
+			City string
 		}
 
 		mapper := New()
@@ -314,15 +267,10 @@ func TestRegisterAutoMap(t *testing.T) {
 		src := Source{Name: "John", Age: 30, Email: "john@example.com"}
 		result, err := Map[Source, Dest](mapper, src)
 
-		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
-		}
-		if result.Name != "John" || result.Age != 30 {
-			t.Errorf("Expected matching fields to be copied, got %+v", result)
-		}
-		if result.City != "" {
-			t.Errorf("Expected City to be zero value, got %s", result.City)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, "John", result.Name)
+		assert.Equal(t, 30, result.Age)
+		assert.Zero(t, result.City)
 	})
 
 	t.Run("RegisterAutoMapMultipleTypes", func(t *testing.T) {
@@ -347,25 +295,17 @@ func TestRegisterAutoMap(t *testing.T) {
 		RegisterAutoMap[Person, PersonDTO](mapper)
 		RegisterAutoMap[Address, AddressDTO](mapper)
 
-		// Test Person mapping
 		person := Person{Name: "John", Age: 30}
 		personResult, err := Map[Person, PersonDTO](mapper, person)
-		if err != nil {
-			t.Errorf("Unexpected error for Person mapping: %v", err)
-		}
-		if personResult.Name != "John" || personResult.Age != 30 {
-			t.Errorf("Expected Person automap to work, got %+v", personResult)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, "John", personResult.Name)
+		assert.Equal(t, 30, personResult.Age)
 
-		// Test Address mapping
 		addr := Address{Street: "123 Main St", City: "NYC"}
 		addrResult, err := Map[Address, AddressDTO](mapper, addr)
-		if err != nil {
-			t.Errorf("Unexpected error for Address mapping: %v", err)
-		}
-		if addrResult.Street != "123 Main St" || addrResult.City != "NYC" {
-			t.Errorf("Expected Address automap to work, got %+v", addrResult)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, "123 Main St", addrResult.Street)
+		assert.Equal(t, "NYC", addrResult.City)
 	})
 
 	t.Run("RegisterAutoMapOverwritesExisting", func(t *testing.T) {
@@ -380,7 +320,6 @@ func TestRegisterAutoMap(t *testing.T) {
 
 		mapper := New()
 
-		// Register manual mapping first
 		Register(mapper, func(s Source) Dest {
 			return Dest{Name: "Manual: " + s.Name, Age: s.Age + 10}
 		})
@@ -388,16 +327,12 @@ func TestRegisterAutoMap(t *testing.T) {
 		src := Source{Name: "John", Age: 30}
 		result1, _ := Map[Source, Dest](mapper, src)
 
-		// Register automap (should overwrite)
 		RegisterAutoMap[Source, Dest](mapper)
 		result2, _ := Map[Source, Dest](mapper, src)
 
-		if result1.Name == result2.Name {
-			t.Error("Expected automap to overwrite manual mapping")
-		}
-		if result2.Name != "John" || result2.Age != 30 {
-			t.Errorf("Expected automap result, got %+v", result2)
-		}
+		assert.NotEqual(t, result1.Name, result2.Name)
+		assert.Equal(t, "John", result2.Name)
+		assert.Equal(t, 30, result2.Age)
 	})
 
 	t.Run("RegisterAutoMapComplexNestedStructs", func(t *testing.T) {
@@ -445,21 +380,14 @@ func TestRegisterAutoMap(t *testing.T) {
 
 		result, err := Map[Source, Dest](mapper, src)
 
-		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
-		}
-		if result.Name != "John" || result.Age != 30 {
-			t.Errorf("Expected basic fields to be copied, got %+v", result)
-		}
-		if result.Address.Street != "123 Main St" || result.Address.City != "NYC" {
-			t.Errorf("Expected Address to be copied, got %+v", result.Address)
-		}
-		if result.Contact.Email != "john@example.com" || result.Contact.Phone != "555-1234" {
-			t.Errorf("Expected Contact to be copied, got %+v", result.Contact)
-		}
-		if len(result.Tags) != 2 || result.Tags[0] != "developer" {
-			t.Errorf("Expected Tags to be copied, got %+v", result.Tags)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, "John", result.Name)
+		assert.Equal(t, 30, result.Age)
+		assert.Equal(t, "123 Main St", result.Address.Street)
+		assert.Equal(t, "NYC", result.Address.City)
+		assert.Equal(t, "john@example.com", result.Contact.Email)
+		assert.Equal(t, "555-1234", result.Contact.Phone)
+		assert.Equal(t, []string{"developer", "golang"}, result.Tags)
 	})
 
 	t.Run("RegisterAutoMapWithPointers", func(t *testing.T) {
@@ -481,15 +409,11 @@ func TestRegisterAutoMap(t *testing.T) {
 
 		result, err := Map[Source, Dest](mapper, src)
 
-		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
-		}
-		if result.Name == nil || *result.Name != "John" {
-			t.Errorf("Expected Name pointer to be copied, got %v", result.Name)
-		}
-		if result.Age == nil || *result.Age != 30 {
-			t.Errorf("Expected Age pointer to be copied, got %v", result.Age)
-		}
+		assert.NoError(t, err)
+		assert.NotNil(t, result.Name)
+		assert.NotNil(t, result.Age)
+		assert.Equal(t, "John", *result.Name)
+		assert.Equal(t, 30, *result.Age)
 	})
 
 	t.Run("RegisterAutoMapBidirectional", func(t *testing.T) {
@@ -506,25 +430,17 @@ func TestRegisterAutoMap(t *testing.T) {
 		RegisterAutoMap[PersonA, PersonB](mapper)
 		RegisterAutoMap[PersonB, PersonA](mapper)
 
-		// Test A -> B
 		personA := PersonA{Name: "John", Age: 30}
 		resultB, err := Map[PersonA, PersonB](mapper, personA)
-		if err != nil {
-			t.Errorf("Unexpected error A->B: %v", err)
-		}
-		if resultB.Name != "John" || resultB.Age != 30 {
-			t.Errorf("Expected A->B mapping to work, got %+v", resultB)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, "John", resultB.Name)
+		assert.Equal(t, 30, resultB.Age)
 
-		// Test B -> A
 		personB := PersonB{Name: "Jane", Age: 25}
 		resultA, err := Map[PersonB, PersonA](mapper, personB)
-		if err != nil {
-			t.Errorf("Unexpected error B->A: %v", err)
-		}
-		if resultA.Name != "Jane" || resultA.Age != 25 {
-			t.Errorf("Expected B->A mapping to work, got %+v", resultA)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, "Jane", resultA.Name)
+		assert.Equal(t, 25, resultA.Age)
 	})
 
 	t.Run("RegisterAutoMapReverseMap", func(t *testing.T) {
@@ -543,19 +459,13 @@ func TestRegisterAutoMap(t *testing.T) {
 
 		foo := Foo{X: 42, Y: "hello"}
 		bar, err := Map[Foo, Bar](mapper, foo)
-		if err != nil {
-			t.Fatalf("Unexpected error mapping Foo->Bar: %v", err)
-		}
-		if bar.X != 42 || bar.Y != "hello" {
-			t.Errorf("Expected Bar{42, hello}, got %+v", bar)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, 42, bar.X)
+		assert.Equal(t, "hello", bar.Y)
 
 		foo2, err := Map[Bar, Foo](mapper, bar)
-		if err != nil {
-			t.Fatalf("Unexpected error mapping Bar->Foo: %v", err)
-		}
-		if foo2.X != 42 || foo2.Y != "hello" {
-			t.Errorf("Expected Foo{42, hello}, got %+v", foo2)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, 42, foo2.X)
+		assert.Equal(t, "hello", foo2.Y)
 	})
 }

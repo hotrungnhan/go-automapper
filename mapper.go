@@ -121,18 +121,18 @@ func Register[S any, D any](m Mapper, fn func(S) D) {
 func Map[S any, D any](m Mapper, src S) (D, error) {
 	var dst D
 
-	srcType := reflect.TypeOf(src)
-	dstType := reflect.TypeOf(dst)
+	srcType := reflect.TypeOf(src) //25ns
+	dstType := reflect.TypeOf(dst) //25ns
 
 	// Get the underlying types for the registry key
 	keySrcType := srcType
 	keyDstType := dstType
 
 	if keySrcType.Kind() == reflect.Ptr {
-		keySrcType = keySrcType.Elem()
+		keySrcType = keySrcType.Elem() // 3ns
 	}
 	if keyDstType.Kind() == reflect.Ptr {
-		keyDstType = keyDstType.Elem()
+		keyDstType = keyDstType.Elem() // 3ns
 	}
 
 	key := typePair{
@@ -140,128 +140,37 @@ func Map[S any, D any](m Mapper, src S) (D, error) {
 		dst: keyDstType,
 	}
 
-	fn, ok := m.registry[key]
+	fn, ok := m.registry[key] // 25ns
 	if !ok {
 		return dst, ErrNoMapping
 	}
 
-	fnValue := reflect.ValueOf(fn)
-	fnType := fnValue.Type()
+	srcValue := reflect.ValueOf(src) //25ns
 
-	// Handle the four cases based on pointer combinations
-	srcValue := reflect.ValueOf(src)
+	fnValue := reflect.ValueOf(fn) //25ns
 
-	// Case 1: src is pointer, dst is pointer
-	if srcType.Kind() == reflect.Ptr && dstType.Kind() == reflect.Ptr {
+	var firstParam reflect.Value
+
+	if srcType.Kind() == reflect.Ptr {
 		if srcValue.IsNil() {
-			return dst, nil // return zero value (nil pointer)
-		}
-
-		var callArg reflect.Value
-		if fnType.In(0).Kind() == reflect.Ptr {
-			// Function expects pointer, we have pointer
-			callArg = srcValue
+			return dst, nil
 		} else {
-			// Function expects value, we have pointer - dereference
-			callArg = srcValue.Elem()
+			firstParam = srcValue.Elem() // 3ns
 		}
-
-		result := fnValue.Call([]reflect.Value{callArg})[0]
-
-		if fnType.Out(0).Kind() == reflect.Ptr {
-			// Function returns pointer, we need pointer
-			return result.Interface().(D), nil
-		} else {
-			// Function returns value, we need pointer - create pointer
-			ptrResult := reflect.New(result.Type())
-			ptrResult.Elem().Set(result)
-			return ptrResult.Interface().(D), nil
-		}
+	} else {
+		firstParam = srcValue
 	}
 
-	// Case 2: src is pointer, dst is value
-	if srcType.Kind() == reflect.Ptr && dstType.Kind() != reflect.Ptr {
-		if srcValue.IsNil() {
-			return dst, nil // return zero value
-		}
+	result := fnValue.Call([]reflect.Value{firstParam})[0] //96ns
 
-		var callArg reflect.Value
-		if fnType.In(0).Kind() == reflect.Ptr {
-			// Function expects pointer, we have pointer
-			callArg = srcValue
-		} else {
-			// Function expects value, we have pointer - dereference
-			callArg = srcValue.Elem()
-		}
-
-		result := fnValue.Call([]reflect.Value{callArg})[0]
-
-		if fnType.Out(0).Kind() == reflect.Ptr {
-			// Function returns pointer, we need value - dereference
-			if result.IsNil() {
-				return dst, nil
-			}
-			return result.Elem().Interface().(D), nil
-		} else {
-			// Function returns value, we need value
-			return result.Interface().(D), nil
-		}
+	if dstType.Kind() == reflect.Ptr {
+		// 30ns
+		ptrResult := reflect.New(result.Type())
+		ptrResult.Elem().Set(result)
+		return ptrResult.Interface().(D), nil
+	} else {
+		return result.Interface().(D), nil // 5ns
 	}
-
-	// Case 3: src is value, dst is pointer
-	if srcType.Kind() != reflect.Ptr && dstType.Kind() == reflect.Ptr {
-		var callArg reflect.Value
-		if fnType.In(0).Kind() == reflect.Ptr {
-			// Function expects pointer, we have value - create pointer
-			ptrArg := reflect.New(srcValue.Type())
-			ptrArg.Elem().Set(srcValue)
-			callArg = ptrArg
-		} else {
-			// Function expects value, we have value
-			callArg = srcValue
-		}
-
-		result := fnValue.Call([]reflect.Value{callArg})[0]
-
-		if fnType.Out(0).Kind() == reflect.Ptr {
-			// Function returns pointer, we need pointer
-			return result.Interface().(D), nil
-		} else {
-			// Function returns value, we need pointer - create pointer
-			ptrResult := reflect.New(result.Type())
-			ptrResult.Elem().Set(result)
-			return ptrResult.Interface().(D), nil
-		}
-	}
-
-	// Case 4: src is value, dst is value
-	if srcType.Kind() != reflect.Ptr && dstType.Kind() != reflect.Ptr {
-		var callArg reflect.Value
-		if fnType.In(0).Kind() == reflect.Ptr {
-			// Function expects pointer, we have value - create pointer
-			ptrArg := reflect.New(srcValue.Type())
-			ptrArg.Elem().Set(srcValue)
-			callArg = ptrArg
-		} else {
-			// Function expects value, we have value
-			callArg = srcValue
-		}
-
-		result := fnValue.Call([]reflect.Value{callArg})[0]
-
-		if fnType.Out(0).Kind() == reflect.Ptr {
-			// Function returns pointer, we need value - dereference
-			if result.IsNil() {
-				return dst, nil
-			}
-			return result.Elem().Interface().(D), nil
-		} else {
-			// Function returns value, we need value
-			return result.Interface().(D), nil
-		}
-	}
-
-	return dst, nil
 }
 
 // MapSlice applies a registered mapping function to each element of a slice,
